@@ -2,7 +2,7 @@
 Neural Network Engine - A from-scratch implementation of fully connected neural networks.
 """
 
-from src.network import NeuralNetwork, Trainer
+from src.network import NeuralNetwork, Trainer, cross_validate
 from src.layers import DenseLayer, Dropout, Sigmoid, ReLU, Tanh, Softmax
 from src.optimizers import Adam, SGD, RMSprop
 from src.losses import MeanSquaredError, CategoricalCrossEntropy, BinaryCrossEntropy
@@ -51,4 +51,5 @@ __all__ = [
     'accuracy_score',
     'confusion_matrix',
     'k_fold_indices',
+    'cross_validate'
 ]

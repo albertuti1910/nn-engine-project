@@ -2,11 +2,11 @@
 Neural Network implementation with training functionality.
 """
 import numpy as np
-from typing import List, Tuple, Optional, Dict
+from typing import List, Tuple, Optional, Dict, Callable
 from src.layers import DenseLayer, Dropout
 from src.losses import get_loss_function
-from src.optimizers import Optimizer
-from src.utils import create_mini_batches, accuracy_score
+from src.optimizers import Optimizer, Adam
+from src.utils import create_mini_batches, accuracy_score, one_hot_encode
 
 
 class NeuralNetwork:
@@ -330,3 +330,70 @@ class Trainer:
     def get_history(self) -> Dict[str, List[float]]:
         """Get training history."""
         return self.history
+
+
+def cross_validate(network_creator: Callable,
+                   X: np.ndarray,
+                   y: np.ndarray,
+                   k: int = 5,
+                   epochs: int = 20,
+                   batch_size: int = 32,
+                   optimizer_class: type = Adam,
+                   optimizer_config: Optional[Dict] = None,
+                   loss_function: str = 'categorical_crossentropy',
+                   random_seed: Optional[int] = None):
+    """
+    Performs k-fold cross-validation.
+
+    Args:
+        network_creator: A function that returns a new instance of NeuralNetwork.
+        X: Input data.
+        y: Labels (will be one-hot encoded if not already).
+        k: Number of folds.
+        ... other training parameters
+    """
+    if optimizer_config is None:
+        optimizer_config = {}
+
+    if y.ndim == 1:
+        y_one_hot = one_hot_encode(y)
+    else:
+        y_one_hot = y
+
+    indices = np.arange(X.shape[0])
+    if random_seed:
+        np.random.seed(random_seed)
+    np.random.shuffle(indices)
+
+    fold_sizes = np.full(k, X.shape[0] // k, dtype=int)
+    fold_sizes[:X.shape[0] % k] += 1
+    current = 0
+    fold_indices = []
+    for fold_size in fold_sizes:
+        start, stop = current, current + fold_size
+        fold_indices.append(indices[start:stop])
+        current = stop
+
+    fold_scores = []
+
+    for i in range(k):
+        print(f"--- Fold {i+1}/{k} ---")
+
+        val_idx = fold_indices[i]
+        train_idx = np.concatenate([fold_indices[j] for j in range(k) if j != i])
+
+        X_train_fold, y_train_oh_fold = X[train_idx], y_one_hot[train_idx]
+        X_val_fold, y_val_oh_fold = X[val_idx], y_one_hot[val_idx]
+
+        network = network_creator()
+        optimizer = optimizer_class(**optimizer_config)
+        trainer = Trainer(network, optimizer, loss_function)
+
+        trainer.train(X_train_fold, y_train_oh_fold, X_val_fold, y_val_oh_fold,
+                                epochs=epochs, batch_size=batch_size, verbose=0)
+
+        _, val_acc = trainer.evaluate(X_val_fold, y_val_oh_fold)
+        fold_scores.append(val_acc)
+        print(f"Validation accuracy: {val_acc:.4f}")
+
+    return fold_scores

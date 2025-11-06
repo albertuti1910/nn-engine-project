@@ -1,0 +1,16 @@
+[project]
+name = "nn-engine"
+version = "0.1.0"
+description = "Neural Network Engine from scratch"
+readme = "README.md"
+requires-python = ">=3.9"
+dependencies = [
+    "numpy>=1.24.0",
+    "matplotlib>=3.7.0",
+    "pandas>=2.0.0",
+    "scikit-learn>=1.6.1",
+]
+
+[build-system]
+requires = ["setuptools>=45", "wheel"]
+build-backend = "setuptools.build_meta"
